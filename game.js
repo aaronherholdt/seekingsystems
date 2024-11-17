@@ -1,24 +1,19 @@
 // Connect to the backend server
-const socket = io("https://seekingsystems-backend.onrender.com");
-
-let players = []; // Track connected players
+const socket = io(); // Ensure this matches your backend setup
 
 // When connected, send the player's name
 socket.on("connect", () => {
-  console.log(`Connected to the server with ID: ${socket.id}`);
+    console.log(`Connected to the server with ID: ${socket.id}`);
 
-  // Prompt for player name and send to server
-  const playerName = prompt("Enter your name:") || "Anonymous";
-  socket.emit("newPlayer", { id: socket.id, name: playerName });
+    // Prompt for player name and send to server
+    const playerName = prompt("Enter your name:") || "Anonymous";
+    socket.emit("newPlayer", { id: socket.id, name: playerName });
 });
 
-// Update the global players array and UI when receiving an updated player list
+// Listen for updates to the player list
 socket.on("playerList", (updatedPlayers) => {
-    players = updatedPlayers; // Update global players array
-    if (game.scene && game.scene.keys.MainScene) {
-        // Call the update function in the active scene if available
-        game.scene.keys.MainScene.updatePlayersUI();
-    }
+    players = updatedPlayers; // Update the players array
+    updatePlayersUI(); // Update the UI
 });
 
 // Phaser configuration
@@ -54,6 +49,8 @@ let gameStarted = false; // New flag to track if the game has started
 let lastInteractionTime = 0; // Track the last interaction for score decay
 let comboCounter = 0; // Track consecutive successful actions
 let comboMultiplier = 1; // Default score multiplier
+let players = []; // Track connected players
+let playerListText; // Text object to display player names
 
 function preload() {
     // Optional: Load any assets here
@@ -81,15 +78,6 @@ function showTutorial() {
     });
 }
 
-// Function to update the players' list UI
-function updatePlayersUI() {
-    if (!this.playerListText) {
-        console.error('Player list text object is not defined.');
-        return;
-    }
-    const playerListText = players.map((player, index) => `Player ${index + 1}: ${player.name}`).join('\n');
-    this.playerListText.setText(playerListText);
-}
 
 // Function to start the score decay
 function startScoreDecay() {
@@ -167,7 +155,6 @@ function startTimers() {
     startScoreDecay.call(this);
 }
 
-
 function dissolveRandomNode() {
     if (this.nodes.length > 0) {
         const randomNode = this.nodes[Math.floor(Math.random() * this.nodes.length)];
@@ -225,8 +212,6 @@ function create() {
     let timerText = this.add.text(10, 30, 'Time: 0s', { fontSize: '16px', fill: '#fff' }); // Timer display
     let resilienceProgress = this.add.text(10, 50, 'Resilience: 0s', { fontSize: '16px', fill: '#fff' });
     let selectedNode = null;
-    // Initialize the player list display
-    this.playerListText = this.add.text(10, 80, '', { fontSize: '16px', fill: '#fff' }); // Ensure this is set up before calling updatePlayersUI
 
      // Display player list
     this.playerListText = this.add.text(10, 80, "Players:", {
@@ -234,8 +219,14 @@ function create() {
         fill: "#fff",
     });
 
-    // Initialize players UI
-    updatePlayersUI.call(this);
+    function updatePlayersUI() {
+        // Update player list text
+        const playerListContent = players
+            .map((player, index) => `Player ${index + 1}: ${player.name}`)
+            .join("\n");
+        playerListText.setText(`Players:\n${playerListContent}`);
+    }
+    
 
     const baseFontSize = this.scale.width > 1024 ? '16px' : this.scale.width > 768 ? '14px' : '12px';
     const legendFontSize = this.scale.width > 1024 ? '12px' : this.scale.width > 768 ? '10px' : '8px';
