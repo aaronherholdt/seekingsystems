@@ -12,10 +12,13 @@ socket.on("connect", () => {
   socket.emit("newPlayer", { id: socket.id, name: playerName });
 });
 
-// Listen for updates to the player list
+// Update the global players array and UI when receiving an updated player list
 socket.on("playerList", (updatedPlayers) => {
-  players = updatedPlayers; // Update the players array
-  updatePlayersUI(); // Update the player list display
+    players = updatedPlayers; // Update global players array
+    if (game.scene && game.scene.keys.MainScene) {
+        // Call the update function in the active scene if available
+        game.scene.keys.MainScene.updatePlayersUI();
+    }
 });
 
 // Phaser configuration
@@ -226,6 +229,9 @@ function create() {
         fontSize: "16px",
         fill: "#fff",
     });
+
+    // Initialize players UI
+    updatePlayersUI.call(this);
 
     const baseFontSize = this.scale.width > 1024 ? '16px' : this.scale.width > 768 ? '14px' : '12px';
     const legendFontSize = this.scale.width > 1024 ? '12px' : this.scale.width > 768 ? '10px' : '8px';
