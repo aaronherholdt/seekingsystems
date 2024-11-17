@@ -6,7 +6,7 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "*", // Adjust to your frontend's URL for better security
+    origin: "https://seekingsystems.vercel.app/", // Adjust to your frontend's URL for better security
     methods: ["GET", "POST"],
   },
 });
