@@ -4,28 +4,45 @@ const { Server } = require("socket.io");
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+const io = new Server(server, {
+  cors: {
+    origin: "*", // Adjust to your frontend's URL for better security
+    methods: ["GET", "POST"],
+  },
+});
 
-let players = []; // Track connected players
+// Middleware to serve static files (Optional if you serve frontend separately)
+app.use(express.static("public"));
 
-// Handle new connections
+// Handle basic route for backend testing
+app.get("/", (req, res) => {
+  res.send("Backend is running and ready for connections!");
+});
+
+// Track connected players
+let players = [];
+
+// Handle socket connections
 io.on("connection", (socket) => {
   console.log(`Player connected: ${socket.id}`);
 
   // Handle a new player joining
   socket.on("newPlayer", (data) => {
-    players.push({ id: socket.id, name: data.name });
-    io.emit("playerList", players); // Broadcast the updated player list
+    const playerName = data.name || "Anonymous"; // Fallback name
+    players.push({ id: socket.id, name: playerName });
+    console.log(`New player added: ${playerName}`);
+    io.emit("playerList", players); // Broadcast updated player list
   });
 
-  // Handle a player disconnecting
+  // Handle player disconnection
   socket.on("disconnect", () => {
+    console.log(`Player disconnected: ${socket.id}`);
     players = players.filter((player) => player.id !== socket.id);
-    io.emit("playerList", players); // Broadcast the updated player list
+    io.emit("playerList", players); // Broadcast updated player list
   });
 });
 
-// Start the server
+// Set up the server to listen on a specific port
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
