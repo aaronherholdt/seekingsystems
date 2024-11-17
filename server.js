@@ -6,23 +6,27 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-let players = []; // Array to store connected players
+let players = []; // Track connected players
 
+// Handle new connections
 io.on("connection", (socket) => {
-    console.log(`Player connected: ${socket.id}`);
+  console.log(`Player connected: ${socket.id}`);
 
-    socket.on("newPlayer", (playerData) => {
-        players.push({ id: socket.id, name: playerData.name });
-        io.emit("playerList", players); // Broadcast updated player list
-    });
+  // Handle a new player joining
+  socket.on("newPlayer", (data) => {
+    players.push({ id: socket.id, name: data.name });
+    io.emit("playerList", players); // Broadcast the updated player list
+  });
 
-    socket.on("disconnect", () => {
-        console.log(`Player disconnected: ${socket.id}`);
-        players = players.filter((player) => player.id !== socket.id);
-        io.emit("playerList", players); // Broadcast updated player list
-    });
+  // Handle a player disconnecting
+  socket.on("disconnect", () => {
+    players = players.filter((player) => player.id !== socket.id);
+    io.emit("playerList", players); // Broadcast the updated player list
+  });
 });
 
-server.listen(3000, () => {
-    console.log("Server running on http://localhost:3000");
+// Start the server
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
