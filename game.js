@@ -10,11 +10,6 @@ socket.on("connect", () => {
     socket.emit("newPlayer", { id: socket.id, name: playerName });
 });
 
-// Listen for updates to the player list
-socket.on("playerList", (updatedPlayers) => {
-    players = updatedPlayers; // Update the players array
-    updatePlayersUI(); // Update the UI
-});
 
 // Phaser configuration
 const config = {
@@ -54,10 +49,17 @@ let playerListText; // Text object to display player names
 
 
 function updatePlayersUI() {
-    // Update player list text
+    if (!playerListText) {
+        console.error("playerListText is not initialized yet.");
+        return; // Safeguard to prevent errors
+    }
+
+    // Generate the player list content dynamically
     const playerListContent = players
         .map((player, index) => `Player ${index + 1}: ${player.name}`)
         .join("\n");
+
+    // Update the player list text on the screen
     playerListText.setText(`Players:\n${playerListContent}`);
 }
 
@@ -230,6 +232,13 @@ function create() {
 
     // Call updatePlayersUI initially to render the current list
     updatePlayersUI();
+
+    // Listen for updates to the player list
+    socket.on("playerList", (updatedPlayers) => {
+        players = updatedPlayers; // Update the players array
+        updatePlayersUI(); // Update the UI
+    });
+
 
     const baseFontSize = this.scale.width > 1024 ? '16px' : this.scale.width > 768 ? '14px' : '12px';
     const legendFontSize = this.scale.width > 1024 ? '12px' : this.scale.width > 768 ? '10px' : '8px';
