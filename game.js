@@ -45,7 +45,22 @@ let lastInteractionTime = 0; // Track the last interaction for score decay
 let comboCounter = 0; // Track consecutive successful actions
 let comboMultiplier = 1; // Default score multiplier
 let players = []; // Track connected players
-let playerListText; // Text object to display player names
+let playerListText = null; // Text object to display player names
+
+function updatePlayersUI() {
+    if (!playerListText) {
+        console.error("playerListText is not initialized yet.");
+        return; // Safeguard to prevent errors
+    }
+
+    // Generate the player list content dynamically
+    const playerListContent = players
+        .map((player, index) => `Player ${index + 1}: ${player.name}`)
+        .join("\n");
+
+    // Update the player list text on the screen
+    playerListText.setText(`Players:\n${playerListContent}`);
+}
 
 
 
@@ -215,22 +230,6 @@ function create() {
         fontSize: "16px",
         fill: "#fff",
     });
-
-    function updatePlayersUI() {
-        if (!playerListText) {
-            console.error("playerListText is not initialized yet.");
-            return; // Safeguard to prevent errors
-        }
-    
-        // Generate the player list content dynamically
-        const playerListContent = players
-            .map((player, index) => `Player ${index + 1}: ${player.name}`)
-            .join("\n");
-    
-        // Update the player list text on the screen
-        playerListText.setText(`Players:\n${playerListContent}`);
-    }
-    
 
     // Call updatePlayersUI initially to render the current list
     updatePlayersUI();
