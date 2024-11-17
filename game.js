@@ -10,6 +10,12 @@ socket.on("connect", () => {
     socket.emit("newPlayer", { id: socket.id, name: playerName });
 });
 
+// Listen for updates to the player list
+socket.on("playerList", (updatedPlayers) => {
+    players = updatedPlayers; // Update the players array
+    updatePlayersUI(); // Update the UI
+});
+
 // Phaser configuration
 const config = {
   type: Phaser.AUTO,
@@ -54,12 +60,6 @@ function updatePlayersUI() {
         .join("\n");
     playerListText.setText(`Players:\n${playerListContent}`);
 }
-
-// Listen for updates to the player list
-socket.on("playerList", (updatedPlayers) => {
-    players = updatedPlayers; // Update the players array
-    updatePlayersUI(); // Update the UI
-});
 
 function preload() {
     // Optional: Load any assets here
