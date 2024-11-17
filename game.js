@@ -48,7 +48,6 @@ window.addEventListener('resize', () => {
     game.scale.resize(window.innerWidth, window.innerHeight);
 });
 
-
 let score = 0;
 let gameTime = 0;
 let resilienceTimer = 0; // Timer to track resilience time
@@ -59,6 +58,7 @@ let gameStarted = false; // New flag to track if the game has started
 let lastInteractionTime = 0; // Track the last interaction for score decay
 let comboCounter = 0; // Track consecutive successful actions
 let comboMultiplier = 1; // Default score multiplier
+let players = []; // Track connected players
 
 function preload() {
     // Optional: Load any assets here
@@ -84,6 +84,12 @@ function showTutorial() {
         isGameActive = true; // Start the game logic
         startTimers.call(this); // Call the function to start the timers
     });
+}
+
+// Function to update the players' list
+function updatePlayersUI() {
+    const playerListText = players.map((player, index) => `Player ${index + 1}: ${player.name}`).join('\n');
+    this.playerListText.setText(playerListText);
 }
 
 // Function to start the score decay
@@ -220,6 +226,17 @@ function create() {
     let timerText = this.add.text(10, 30, 'Time: 0s', { fontSize: '16px', fill: '#fff' }); // Timer display
     let resilienceProgress = this.add.text(10, 50, 'Resilience: 0s', { fontSize: '16px', fill: '#fff' });
     let selectedNode = null;
+    this.playerListText = this.add.text(10, 80, '', { fontSize: '16px', fill: '#fff' }); // Player list display
+
+    // Listen for player updates from the server
+    const socket = io("https://seekingsystems-backend.onrender.com");
+
+    socket.on("playerList", (updatedPlayers) => {
+        players = updatedPlayers; // Update the players array
+        updatePlayersUI.call(this); // Update the UI
+    });
+
+    socket.emit("newPlayer", { name: prompt("Enter your name") || "Anonymous" }); // Add a new player
 
     const baseFontSize = this.scale.width > 1024 ? '16px' : this.scale.width > 768 ? '14px' : '12px';
     const legendFontSize = this.scale.width > 1024 ? '12px' : this.scale.width > 768 ? '10px' : '8px';
