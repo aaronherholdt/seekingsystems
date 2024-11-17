@@ -81,8 +81,12 @@ function showTutorial() {
     });
 }
 
-// Function to update the players' list
+// Function to update the players' list UI
 function updatePlayersUI() {
+    if (!this.playerListText) {
+        console.error('Player list text object is not defined.');
+        return;
+    }
     const playerListText = players.map((player, index) => `Player ${index + 1}: ${player.name}`).join('\n');
     this.playerListText.setText(playerListText);
 }
