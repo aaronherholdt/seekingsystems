@@ -52,6 +52,15 @@ let comboMultiplier = 1; // Default score multiplier
 let players = []; // Track connected players
 let playerListText; // Text object to display player names
 
+
+function updatePlayersUI() {
+    // Update player list text
+    const playerListContent = players
+        .map((player, index) => `Player ${index + 1}: ${player.name}`)
+        .join("\n");
+    playerListText.setText(`Players:\n${playerListContent}`);
+}
+
 function preload() {
     // Optional: Load any assets here
 }
@@ -219,14 +228,8 @@ function create() {
         fill: "#fff",
     });
 
-    function updatePlayersUI() {
-        // Update player list text
-        const playerListContent = players
-            .map((player, index) => `Player ${index + 1}: ${player.name}`)
-            .join("\n");
-        playerListText.setText(`Players:\n${playerListContent}`);
-    }
-    
+    // Call updatePlayersUI initially to render the current list
+    updatePlayersUI();
 
     const baseFontSize = this.scale.width > 1024 ? '16px' : this.scale.width > 768 ? '14px' : '12px';
     const legendFontSize = this.scale.width > 1024 ? '12px' : this.scale.width > 768 ? '10px' : '8px';
