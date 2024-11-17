@@ -1,5 +1,5 @@
 // Connect to the backend server
-const socket = io("https://seekingsystems.onrender.com"); // Ensure this matches your backend setup
+const socket = io(https://seekingsystems-backend.onrender.com); // Ensure this matches your backend setup
 
 // When connected, send the player's name
 socket.on("connect", () => {
