@@ -218,6 +218,8 @@ function create() {
     let timerText = this.add.text(10, 30, 'Time: 0s', { fontSize: '16px', fill: '#fff' }); // Timer display
     let resilienceProgress = this.add.text(10, 50, 'Resilience: 0s', { fontSize: '16px', fill: '#fff' });
     let selectedNode = null;
+    // Initialize the player list display
+    this.playerListText = this.add.text(10, 80, '', { fontSize: '16px', fill: '#fff' }); // Ensure this is set up before calling updatePlayersUI
 
      // Display player list
     this.playerListText = this.add.text(10, 80, "Players:", {
