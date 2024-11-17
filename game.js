@@ -1,16 +1,18 @@
-// Establish a connection to the backend
-const socket = io(); // Connect to the backend
+// Connect to the backend server
+const socket = io(); // Ensure this matches your backend setup
 
-// Handle connection event
+// When connected, send the player's name
 socket.on("connect", () => {
-    console.log(`Connected to server with ID: ${socket.id}`);
-    // Notify the server of a new player
-    socket.emit("newPlayer", { name: prompt("Enter your name") || "Anonymous" });
+  console.log(`Connected to the server with ID: ${socket.id}`);
+
+  // Prompt for player name and send to server
+  const playerName = prompt("Enter your name:") || "Anonymous";
+  socket.emit("newPlayer", { id: socket.id, name: playerName });
 });
 
-// Listen for updates to player names
+// Listen for updates to the player list
 socket.on("playerList", (players) => {
-    updatePlayerUI(players);
+  updatePlayerUI(players);
 });
 
 // Function to update player UI
