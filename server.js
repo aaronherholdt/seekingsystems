@@ -2,7 +2,7 @@ const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 const cors = require("cors");
-
+const allowedOrigins = ["https://seekingsystems.vercel.app", "http://localhost:3000"]; // Add other allowed origins here
 const app = express();
 const server = http.createServer(app);
 
@@ -16,10 +16,17 @@ const io = new Server(server, {
 });
 
 // Middleware to handle CORS for other API routes
-app.use(cors({
-  origin: "https://seekingsystems.vercel.app", // Replace with your frontend URL
-  methods: ["GET", "POST"],
-}));
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+  })
+);
 
 let players = []; // Track connected players
 
