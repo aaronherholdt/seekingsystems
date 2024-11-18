@@ -302,9 +302,9 @@ function create() {
 
     // Create visual elements for each color association with smaller sizes
     colorAssociations.forEach((assoc, index) => {
-        let colorCircle = scene.add.circle(0, index * 30, 5, assoc.color).setOrigin(0.5, 0.5);
-        let colorText = scene.add.text(15, index * 30 - 5, assoc.name, { fontSize: '12px', fill: '#fff' }).setOrigin(0, 0.5);
-        let descriptionText = scene.add.text(15, index * 30 + 10, assoc.description, { fontSize: '10px', fill: '#aaa' }).setOrigin(0, 0.5);
+        let colorCircle = this.add.circle(0, index * 30, 5, assoc.color).setOrigin(0.5, 0.5);
+        let colorText = this.add.text(15, index * 30 - 5, assoc.name, { fontSize: '12px', fill: '#fff' }).setOrigin(0, 0.5);
+        let descriptionText = this.add.text(15, index * 30 + 10, assoc.description, { fontSize: '10px', fill: '#aaa' }).setOrigin(0, 0.5);
         legend.add(colorCircle);
         legend.add(colorText);
         legend.add(descriptionText);
@@ -317,7 +317,7 @@ function create() {
         updatePlayerList(scene, gameState.players);
         score = gameState.scores[socket.id] || 0;
         resilienceTimer = gameState.resilience;
-        scene.scoreText.setText(`Score: ${score}`);
+        this.scoreText.setText(`Score: ${score}`);
     });
 
     socket.on("nodeCreated", nodeData => createNode(scene, nodeData, false));
@@ -325,7 +325,7 @@ function create() {
     socket.on("playerList", updatedPlayers => updatePlayerList(scene, updatedPlayers));
     socket.on("updateScores", updatedScores => {
         score = updatedScores[socket.id] || 0;
-        scene.scoreText.setText(`Score: ${score}`);
+        this.scoreText.setText(`Score: ${score}`);
     });
 
     // Player management
