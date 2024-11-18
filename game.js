@@ -1,5 +1,5 @@
 // Connect to the backend server
-const socket = io("https://seekingsystems-backend.onrender.com"); // Ensure this matches your backend setup
+const socket = io("https://seekingsystems-backend.onrender.com"); // Replace with your backend URL
 
 const config = {
     type: Phaser.AUTO,
@@ -196,10 +196,10 @@ function create() {
     let resilienceProgress = this.add.text(10, 50, 'Resilience: 0s', { fontSize: '16px', fill: '#fff' });
     let selectedNode = null;
 
-    // Create a text element for displaying player names below the resilience text
+    // Create a text element for displaying player names
     let playerListText = this.add.text(10, 70, 'Players:', { fontSize: '16px', fill: '#fff' });
 
-    // Function to update the player list
+    /// Function to update the player list UI
     function updatePlayersUI() {
         const playerListContent = players
             .map((player, index) => `Player ${index + 1}: ${player.name}`)
@@ -209,16 +209,22 @@ function create() {
 
     // Listen for player list updates from the server
     socket.on("playerList", (updatedPlayers) => {
-        players = updatedPlayers; // Update the global players array
+        players = updatedPlayers; // Update the players array from the server
         updatePlayersUI(); // Refresh the displayed player list
     });
 
-    // Prompt the player for their name upon connecting
+    // Prompt the user to enter their name upon connecting
     socket.on("connect", () => {
         console.log(`Connected to the server with ID: ${socket.id}`);
 
         const playerName = prompt("Enter your name:") || "Anonymous"; // Prompt player for their name
         socket.emit("newPlayer", { id: socket.id, name: playerName }); // Send the player's name to the server
+    });
+
+    // Handle player disconnection
+    socket.on("playerDisconnected", (playerId) => {
+        players = players.filter(player => player.id !== playerId); // Remove the disconnected player
+        updatePlayersUI(); // Refresh the displayed player list
     });
 
     // Initial player list update
@@ -243,7 +249,6 @@ function create() {
 
     // Main game camera setup for zooming and panning
     this.cameras.main.setZoom(1);
-
 
     // Define color associations with smaller font sizes
     const colorAssociations = [
