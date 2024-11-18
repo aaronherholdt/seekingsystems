@@ -242,9 +242,48 @@ function create() {
         legend.x = width - 220;
     });
 
-    // Node creation and selection logic continues here...
-    this.input.on('pointerdown', (pointer, gameObjects) => {
-        // Your node creation and selection logic
+    // Node creation and selection logic
+    this.input.on("pointerdown", (pointer, gameObjects) => {
+        if (!gameStarted) return; // Prevent interactions before the game starts
+    
+        if (pointer.rightButtonDown()) {
+            if (gameObjects.length > 0) {
+                const nodeToRemove = gameObjects[0];
+                removeNode.call(this, nodeToRemove);
+                score -= 20; // Deduct points for removing a node
+                this.scoreText.setText("Score: " + score);
+                lastInteractionTime = gameTime; // Update last interaction time
+            }
+        } else {
+            if (gameObjects.length > 0) {
+                const clickedNode = gameObjects[0];
+                if (selectedNode && selectedNode !== clickedNode) {
+                    if (!isAlreadyConnected.call(this, selectedNode, clickedNode)) {
+                        // Emit the connection creation event to the server
+                        socket.emit("createConnection", {
+                            node1: selectedNode.id,
+                            node2: clickedNode.id,
+                        });
+    
+                        selectedNode = null;
+                    }
+                } else {
+                    selectedNode = clickedNode;
+                }
+            } else {
+                // Create a new node
+                let color = getRandomColor();
+                let nodeData = {
+                    id: this.nodes.length,
+                    x: pointer.x,
+                    y: pointer.y,
+                    color,
+                };
+    
+                // Emit the node creation event to the server
+                socket.emit("createNode", nodeData);
+            }
+        }
     });
 
     // Main game camera setup for zooming and panning
@@ -268,51 +307,61 @@ function create() {
         legend.add(descriptionText);
     });
 
-    // Node creation and selection logic
-    this.input.on('pointerdown', (pointer, gameObjects) => {
-        if (!gameStarted) return; // Prevent interactions before the game starts
+    // Synchronize initial game state when a player connects
+    socket.on("initializeGame", (gameState) => {
+        // Render existing nodes
+        gameState.nodes.forEach((nodeData) => {
+            let node = this.add
+                .circle(nodeData.x, nodeData.y, 20, nodeData.color)
+                .setInteractive();
+            node.id = nodeData.id;
+            this.nodes.push(node);
+        });
 
-        if (pointer.rightButtonDown()) {
-            if (gameObjects.length > 0) {
-                const nodeToRemove = gameObjects[0];
-                removeNode.call(this, nodeToRemove);
-                score -= 20; // Deduct points for removing a node
-                this.scoreText.setText('Score: ' + score);
-                lastInteractionTime = gameTime; // Update last interaction time
+        // Render existing connections
+        gameState.connections.forEach((connectionData) => {
+            const node1 = this.nodes.find((n) => n.id === connectionData.node1);
+            const node2 = this.nodes.find((n) => n.id === connectionData.node2);
+            this.add.line(0, 0, node1.x, node1.y, node2.x, node2.y, 0xffffff);
+        });
+
+        // Initialize scores
+        Object.entries(gameState.scores).forEach(([id, score]) => {
+            if (id === socket.id) {
+                this.scoreText.setText("Score: " + score);
             }
-        } else {
-            if (gameObjects.length > 0) {
-                const clickedNode = gameObjects[0];
-                if (selectedNode && selectedNode !== clickedNode) {
-                    if (!isAlreadyConnected.call(this, selectedNode, clickedNode)) {
-                        this.add.line(0, 0, selectedNode.x, selectedNode.y, clickedNode.x, clickedNode.y, 0xffffff).setOrigin(0, 0);
-                        addConnection.call(this, selectedNode, clickedNode);
-                        handleColorInteraction.call(this, selectedNode, clickedNode);
-                        comboCounter++;
-                        comboMultiplier = comboCounter >= 3 ? 2 : 1;
-                        score += 10 * comboMultiplier;
-                        this.scoreText.setText('Score: ' + score);
-                        lastInteractionTime = gameTime;
-                    }
-                    selectedNode = null;
-                } else {
-                    selectedNode = clickedNode;
-                }
-            } else {
-                let color = getRandomColor();
-                let node = this.add.circle(pointer.x, pointer.y, 20, color).setInteractive();
-                node.id = this.nodes.length;
-                node.type = color;
-                node.on('pointerover', () => node.setStrokeStyle(2, 0xffffff));
-                node.on('pointerout', () => node.setStrokeStyle(0));
-                this.nodes.push(node);
-                comboCounter = 0;
-                comboMultiplier = 1;
-                lastInteractionTime = gameTime;
-            }
-        }
+        });
+
+        // Initialize resilience timer
+        this.resilienceTimer = gameState.resilience;
     });
 
+    // Listen for new nodes created by other players
+    socket.on("nodeCreated", (nodeData) => {
+        let node = this.add
+            .circle(nodeData.x, nodeData.y, 20, nodeData.color)
+            .setInteractive();
+        node.id = nodeData.id;
+        this.nodes.push(node);
+    });
+
+    // Listen for new connections created by other players
+    socket.on("connectionCreated", (connectionData) => {
+        const node1 = this.nodes.find((n) => n.id === connectionData.node1);
+        const node2 = this.nodes.find((n) => n.id === connectionData.node2);
+        this.add.line(0, 0, node1.x, node1.y, node2.x, node2.y, 0xffffff);
+    });
+
+    // Listen for score updates
+    socket.on("updateScores", (updatedScores) => {
+        score = updatedScores[socket.id]; // Update the local score for this player
+        this.scoreText.setText("Score: " + score); // Update the displayed score
+    });
+
+    // Listen for resilience updates
+    socket.on("updateResilience", (resilienceValue) => {
+        this.resilienceTimer = resilienceValue; // Update the local resilience timer
+    });
 
     function isAlreadyConnected(node1, node2) {
         return this.connections[node1.id] && this.connections[node1.id].includes(node2.id);
