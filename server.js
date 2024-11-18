@@ -1,15 +1,23 @@
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
+const cors = require("cors");
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+const io = new Server(server, {
+    cors: {
+        origin: ["http://127.0.0.1:5500", "https://your-frontend-domain.com"], // Add allowed origins
+        methods: ["GET", "POST"]
+    }
+});
+
+// Apply CORS middleware
+app.use(cors({
+    origin: ["http://127.0.0.1:5500", "https://your-frontend-domain.com"], // Add allowed origins
+}));
 
 let players = []; // Track connected players
-
-// Serve static files for the frontend
-app.use(express.static("public")); // Replace "public" with your directory for frontend files
 
 io.on("connection", (socket) => {
     console.log(`Player connected: ${socket.id}`);
