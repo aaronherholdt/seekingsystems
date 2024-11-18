@@ -1,47 +1,33 @@
-const express = require('express');
-const http = require('http');
-const { Server } = require('socket.io');
-const cors = require('cors');
+const express = require("express");
+const http = require("http");
+const { Server } = require("socket.io");
 
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server);
 
-// Your existing backend setup
-const server = require('http').createServer(app);
-const io = require('socket.io')(server, {
-    cors: {
-        origin: 'https://seekingsystems.vercel.app', // Frontend domain for WebSocket
-        methods: ['GET', 'POST']
-    }
-});
+let players = []; // Track connected players
 
-// Allow requests from your frontend's domain
-app.use(cors({
-    origin: 'https://seekingsystems.vercel.app', // Replace with your frontend domain
-    methods: ['GET', 'POST'], // Specify allowed HTTP methods
-    allowedHeaders: ['Content-Type', 'Authorization'], // Specify allowed headers
-    credentials: true // Include cookies if needed
-}));
+// Serve static files for the frontend
+app.use(express.static("public")); // Replace "public" with your directory for frontend files
 
-// Example route
-app.get('/', (req, res) => {
-    res.send('Backend is running');
-});
+io.on("connection", (socket) => {
+    console.log(`Player connected: ${socket.id}`);
 
-// Socket.IO logic
-io.on('connection', (socket) => {
-    console.log(`New connection: ${socket.id}`);
-
-    socket.on('newPlayer', (data) => {
-        console.log(`Player connected: ${data.name}`);
+    // Add new player
+    socket.on("newPlayer", (playerData) => {
+        players.push({ id: socket.id, name: playerData.name });
+        io.emit("playerList", players); // Broadcast updated player list
     });
 
-    socket.on('disconnect', () => {
+    // Remove player on disconnect
+    socket.on("disconnect", () => {
         console.log(`Player disconnected: ${socket.id}`);
+        players = players.filter(player => player.id !== socket.id);
+        io.emit("playerList", players); // Broadcast updated player list
     });
 });
 
-// Start server
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
+server.listen(3000, () => {
+    console.log("Server is running on port 3000");
 });
