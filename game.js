@@ -339,7 +339,7 @@ function create() {
     });
 
     // Handle input
-    scene.input.on('pointerdown', pointer => {
+    this.input.on('pointerdown', pointer => {
         if (!gameStarted) return;
         const clickedNode = nodes.find(node => Phaser.Geom.Circle.Contains(node.geom, pointer.x, pointer.y));
 
