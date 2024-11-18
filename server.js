@@ -26,8 +26,9 @@ let resilience = 0; // Resilience timer
 io.on("connection", (socket) => {
     console.log(`Player connected: ${socket.id}`);
 
-    // Add new player with default name or prompt for it
-    players.push({ id: socket.id, name: `Player ${players.length + 1}` });
+    // Add new player with a default name
+    const newPlayer = { id: socket.id, name: `Player ${players.length + 1}` };
+    players.push(newPlayer);
     io.emit("playerList", players); // Broadcast updated player list
 
     // Send initial game state to the newly connected player
@@ -39,7 +40,7 @@ io.on("connection", (socket) => {
         players, // Send the players list
     });
 
-    // Add player to the scores object
+    // Initialize the player's score
     scores[socket.id] = 0;
     io.emit("updateScores", scores); // Broadcast updated scores
 
@@ -56,25 +57,38 @@ io.on("connection", (socket) => {
         io.emit("updateScores", scores); // Broadcast updated scores
     });
 
-    // Node creation
+    // Handle node creation
     socket.on("createNode", (nodeData) => {
-        nodes.push(nodeData);
-        io.emit("nodeCreated", nodeData); // Broadcast the new node
+        const exists = nodes.some(node => node.id === nodeData.id);
+        if (!exists) {
+            nodes.push(nodeData); // Add the new node
+            io.emit("nodeCreated", nodeData); // Broadcast the new node
+        }
     });
 
-    // Node connection
+    // Handle connection creation
     socket.on("createConnection", (connectionData) => {
-        connections.push(connectionData);
-        io.emit("connectionCreated", connectionData); // Broadcast the new connection
+        const exists = connections.some(
+            (conn) =>
+                (conn.node1 === connectionData.node1 &&
+                    conn.node2 === connectionData.node2) ||
+                (conn.node1 === connectionData.node2 &&
+                    conn.node2 === connectionData.node1)
+        );
+
+        if (!exists) {
+            connections.push(connectionData); // Add only if the connection is unique
+            io.emit("connectionCreated", connectionData); // Broadcast the new connection
+        }
     });
 
-    // Update player score
+    // Handle player score updates
     socket.on("updateScore", ({ playerId, score }) => {
         scores[playerId] = score;
         io.emit("updateScores", scores); // Broadcast updated scores
     });
 
-    // Update resilience timer
+    // Handle resilience timer updates
     socket.on("updateResilience", (resilienceValue) => {
         resilience = resilienceValue;
         io.emit("updateResilience", resilience); // Broadcast updated resilience
