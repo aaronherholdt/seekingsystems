@@ -14,7 +14,7 @@ const io = new Server(server, {
 
 // Apply CORS middleware
 app.use(cors({
-    origin: ["http://127.0.0.1:5500", "https://your-frontend-domain.com"], // Add allowed origins
+    origin: ["https://seekingsystems.vercel.app"], // Add allowed origins
 }));
 
 let players = []; // Track connected players
