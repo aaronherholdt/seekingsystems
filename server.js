@@ -7,14 +7,14 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: ["http://127.0.0.1:5500", "https://your-frontend-domain.com"], // Add allowed origins
+        origin: ["http://127.0.0.1:5500", "https://seekingsystems.vercel.app"], // Add allowed origins
         methods: ["GET", "POST"]
     }
 });
 
 // Apply CORS middleware
 app.use(cors({
-    origin: ["https://seekingsystems.vercel.app"], // Add allowed origins
+    origin: ["http://127.0.0.1:5500", "https://seekingsystems.vercel.app"], // Add allowed origins
 }));
 
 let players = []; // Track connected players
