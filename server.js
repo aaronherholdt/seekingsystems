@@ -17,11 +17,11 @@ app.use(cors({
     origin: ["http://127.0.0.1:5500", "https://seekingsystems.vercel.app"], // Add allowed origins
 }));
 
-let players = []; // Track connected players
 let nodes = []; // To store all nodes
 let connections = []; // To store connections between nodes
 let scores = {}; // Player scores (keyed by player ID)
 let resilience = 0; // Resilience timer
+let players = []; // Track connected players
 
 io.on("connection", (socket) => {
     console.log(`Player connected: ${socket.id}`);
