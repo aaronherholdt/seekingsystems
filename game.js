@@ -184,23 +184,23 @@
      }
  }
  
- function create() {
-     // Initialize the adjacency list for connections
-     this.connections = {}; 
+function create() {
+    // Initialize the adjacency list for connections
+    this.connections = {}; 
  
-     showTutorial.call(this); // Call the tutorial when the game starts
+    showTutorial.call(this); // Call the tutorial when the game starts
  
-     this.nodes = [];
-     this.scoreText = this.add.text(10, 10, 'Score: 0', { fontSize: '16px', fill: '#fff' }); // Make scoreText a property of this
-     let timerText = this.add.text(10, 30, 'Time: 0s', { fontSize: '16px', fill: '#fff' }); // Timer display
-     let resilienceProgress = this.add.text(10, 50, 'Resilience: 0s', { fontSize: '16px', fill: '#fff' });
-     let selectedNode = null;
+    this.nodes = [];
+    this.scoreText = this.add.text(10, 10, 'Score: 0', { fontSize: '16px', fill: '#fff' }); // Make scoreText a property of this
+    let timerText = this.add.text(10, 30, 'Time: 0s', { fontSize: '16px', fill: '#fff' }); // Timer display
+    let resilienceProgress = this.add.text(10, 50, 'Resilience: 0s', { fontSize: '16px', fill: '#fff' });
+    let selectedNode = null;
  
-     // Create a text element for displaying player names below the resilience text
-     let playerListText = this.add.text(10, 70, 'Players:', { fontSize: '16px', fill: '#fff' });
- 
-      // Function to update the player list UI
-      function updatePlayersUI() {
+    // Create a text element for displaying player names below the resilience text
+    let playerListText = this.add.text(10, 70, 'Players:', { fontSize: '16px', fill: '#fff' });
+
+    // Function to update the player list UI
+    function updatePlayersUI() {
         const playerListContent = players
             .map((player, index) => `Player ${index + 1}: ${player.name}`)
             .join('\n'); // Format player names
@@ -227,253 +227,218 @@
         updatePlayersUI(); // Refresh the displayed player list
     });
 
-    // Initial player list update
-    updatePlayersUI();
- 
-     const legend = this.add.container(1000, 20); // Adjust position to top right
-     // Set base font sizes depending on screen width
-     const baseFontSize = this.scale.width > 1024 ? '16px' : this.scale.width > 768 ? '14px' : '12px';
-     const legendFontSize = this.scale.width > 1024 ? '12px' : this.scale.width > 768 ? '10px' : '8px';
-     const legendDescriptionFontSize = this.scale.width > 1024 ? '10px' : this.scale.width > 768 ? '8px' : '6px';
- 
-     // Reposition legend on screen resize to keep it in the top-right corner
-     this.scale.on('resize', (gameSize) => {
-         const { width } = gameSize;
-         legend.x = width - 220;
-     });
- 
-     // Node creation and selection logic continues here...
-     this.input.on('pointerdown', (pointer, gameObjects) => {
-         // Your node creation and selection logic
-     });
- 
-     // Main game camera setup for zooming and panning
-     this.cameras.main.setZoom(1);
- 
- 
-     // Define color associations with smaller font sizes
-     const colorAssociations = [
-         { color: 0x0000ff, name: 'Blue (Cooperation)', description: 'Strengthens the network' },
-         { color: 0x006400, name: 'Green (Growth)', description: 'Supports network resilience' },
-         { color: 0xffff00, name: 'Yellow (Innovation)', description: 'Adds creativity but might risk stability' },
-         { color: 0xff0000, name: 'Red (Conflict)', description: 'Potentially risky' }
-     ];
- 
-     // Create visual elements for each color association with smaller sizes
-     colorAssociations.forEach((assoc, index) => {
-         let colorCircle = this.add.circle(0, index * 30, 5, assoc.color).setOrigin(0.5, 0.5);
-         let colorText = this.add.text(15, index * 30 - 5, assoc.name, { fontSize: '12px', fill: '#fff' }).setOrigin(0, 0.5);
-         let descriptionText = this.add.text(15, index * 30 + 10, assoc.description, { fontSize: '10px', fill: '#aaa' }).setOrigin(0, 0.5);
-         legend.add(colorCircle);
-         legend.add(colorText);
-         legend.add(descriptionText);
-     });
- 
-     // Node creation and selection logic
-     this.input.on('pointerdown', (pointer, gameObjects) => {
-         if (!gameStarted) return; // Prevent interactions before the game starts
- 
-         if (pointer.rightButtonDown()) {
-             if (gameObjects.length > 0) {
-                 const nodeToRemove = gameObjects[0];
-                 removeNode.call(this, nodeToRemove);
-                 score -= 20; // Deduct points for removing a node
-                 this.scoreText.setText('Score: ' + score);
-                 lastInteractionTime = gameTime; // Update last interaction time
-             }
-         } else {
-             if (gameObjects.length > 0) {
-                 const clickedNode = gameObjects[0];
-                 if (selectedNode && selectedNode !== clickedNode) {
-                     if (!isAlreadyConnected.call(this, selectedNode, clickedNode)) {
-                         this.add.line(0, 0, selectedNode.x, selectedNode.y, clickedNode.x, clickedNode.y, 0xffffff).setOrigin(0, 0);
-                         addConnection.call(this, selectedNode, clickedNode);
-                         handleColorInteraction.call(this, selectedNode, clickedNode);
-                         comboCounter++;
-                         comboMultiplier = comboCounter >= 3 ? 2 : 1;
-                         score += 10 * comboMultiplier;
-                         this.scoreText.setText('Score: ' + score);
-                         lastInteractionTime = gameTime;
-                     }
-                     selectedNode = null;
-                 } else {
-                     selectedNode = clickedNode;
-                 }
-             } else {
-                 let color = getRandomColor();
-                 let node = this.add.circle(pointer.x, pointer.y, 20, color).setInteractive();
-                 node.id = this.nodes.length;
-                 node.type = color;
-                 node.on('pointerover', () => node.setStrokeStyle(2, 0xffffff));
-                 node.on('pointerout', () => node.setStrokeStyle(0));
-                 this.nodes.push(node);
-                 comboCounter = 0;
-                 comboMultiplier = 1;
-                 lastInteractionTime = gameTime;
-             }
-         }
-     });
- 
- 
-     function isAlreadyConnected(node1, node2) {
-         return this.connections[node1.id] && this.connections[node1.id].includes(node2.id);
-     }
-     
-     // Update the addConnection function to use this.connections
-     function addConnection(node1, node2) {
-         if (!this.connections[node1.id]) this.connections[node1.id] = [];
-         if (!this.connections[node2.id]) this.connections[node2.id] = [];
-         this.connections[node1.id].push(node2.id);
-         this.connections[node2.id].push(node1.id);
-     }
- 
-     function getRandomColor() {
-         // Add a special color (e.g., yellow for power-up nodes)
-         const colors = [0x006400, 0xff0000, 0x0000ff, 0xffff00]; // Green, Red, Blue, Yellow (Special)
-         return colors[Math.floor(Math.random() * colors.length)];
-     }
- 
-     // Function to display a badge when a milestone is reached
-     function showAchievementBadge(text) {
-         let badge = this.add.text(600, 100, text, { fontSize: '24px', fill: '#ff0' });
-         this.time.addEvent({
-             delay: 3000, // Show badge for 3 seconds
-             callback: () => badge.destroy()
-         });
-     }
- 
-     function checkForLoop(startNode) {
-         let visited = new Set();
-         let loopNodes = [];
-     
-         if (dfs(startNode.id, null, visited, loopNodes) && loopNodes.length >= 5) {
-             if (areNodesSameColor.call(this, loopNodes)) {
-                 createBigNode.call(this, loopNodes);
-                 score += 200; // Bonus score for creating the big node
-                 this.scoreText.setText('Score: ' + score);
-                 showAchievementBadge('Big Node Created!');
-             }
-             return true;
-         }
-         return false;
-     }
-     
-     function dfs(nodeId, parent, visited, loopNodes) {
-         if (visited.has(nodeId)) {
-             return true; // Loop detected
-         }
-         visited.add(nodeId);
-         loopNodes.push(nodeId);
-         
-         for (let neighborId of (this.connections[nodeId] || [])) {
-             if (neighborId !== parent && dfs.call(this, neighborId, nodeId, visited, loopNodes)) {
-                 return true;
-             }
-         }
-         loopNodes.pop();
-         return false;
-     }
-     
-     function areNodesSameColor(loopNodes) {
-         if (!this.nodes || this.nodes.length === 0) {
-             console.error('this.nodes is undefined or empty');
-             return false;
-         }
-     
-         const firstNode = this.nodes.find(n => n.id === loopNodes[0]);
-         if (!firstNode) return false;
-     
-         return loopNodes.every(nodeId => {
-             let node = this.nodes.find(n => n.id === nodeId);
-             return node && node.type === firstNode.type;
-         });
-     }
-     
-     function createBigNode(loopNodes) {
-         let centerX = 0;
-         let centerY = 0;
-         loopNodes.forEach(nodeId => {
-             let node = this.nodes.find(n => n.id === nodeId);
-             centerX += node.x;
-             centerY += node.y;
-         });
-         centerX /= loopNodes.length;
-         centerY /= loopNodes.length;
-     
-         let bigNode = this.add.circle(centerX, centerY, 30, 0xffff00).setInteractive(); // Yellow for a special node
-         bigNode.isBigNode = true;
-         bigNode.on('pointerover', () => bigNode.setStrokeStyle(4, 0xffffff));
-         bigNode.on('pointerout', () => bigNode.setStrokeStyle(0));
-     }
- 
-     
-     function handleColorInteraction(node1, node2) {
-         if (node1.type === 0xff0000 || node2.type === 0xff0000) {
-             // Any connection involving a red node decreases the score
-             score -= 10;
-     
-             // If both nodes are red, trigger the special effect to remove connected nodes and lines
-             if (node1.type === 0xff0000 && node2.type === 0xff0000) {
-                 removeConnectedNodesAndLines.call(this, node1);
-                 removeConnectedNodesAndLines.call(this, node2);
-             }
-         } else if ((node1.type === 0x006400 && node2.type === 0x0000ff) || (node1.type === 0x0000ff && node2.type === 0x00ff00)) {
-             // Green to Blue or Blue to Green (positive connection)
-             score += 15;
-         } else if ((node1.type === 0xffff00 && node2.type === 0xff0000) || (node1.type === 0xff0000 && node2.type === 0xffff00)) {
-             // Yellow to Red (penalized)
-             score -= 10;
-         } else if (node1.type === node2.type) {
-             // Same color connection
-             score += 5;
-         } else {
-             // Default connection for other cases
-             score += 2;
-         }
-     
-         // Update score display
-         this.scoreText.setText('Score: ' + score);
-     
-         // Reset combo counter on penalties
-         if (score < 0) {
-             comboCounter = 0;
-         }
-     }
- 
-     function removeConnectedNodesAndLines(node) {
-         // Collect all lines connected to the node
-         let linesToRemove = this.children.list.filter(child =>
-             child.type === 'Line' &&
-             (child.geom.x1 === node.x && child.geom.y1 === node.y ||
-              child.geom.x2 === node.x && child.geom.y2 === node.y)
-         );
-     
-         // Remove all found lines and deduct score for each line removed
-         linesToRemove.forEach(line => {
-             line.destroy(); // Remove the line
-             score -= 10; // Deduct points for each line removed (adjust if necessary)
-         });
-         this.scoreText.setText('Score: ' + score);
-     
-         // Remove the node itself and update the node list
-         let nodeId = node.id;
-         if (this.nodes.includes(node)) {
-             this.nodes = this.nodes.filter(n => n.id !== nodeId);
-             node.destroy();
-         }
-     
-         // Remove connections from the adjacency list
-         if (this.connections[nodeId]) {
-             this.connections[nodeId].forEach(connectedId => {
-                 if (this.connections[connectedId]) {
-                     this.connections[connectedId] = this.connections[connectedId].filter(id => id !== nodeId);
-                 }
-             });
-             delete this.connections[nodeId];
-         }
-     }
- }
- 
- function update() {
-     // Any real-time updates can go here
- }
+    const legend = this.add.container(1000, 20); // Adjust position to top right
+    // Set base font sizes depending on screen width
+    const baseFontSize = this.scale.width > 1024 ? '16px' : this.scale.width > 768 ? '14px' : '12px';
+    const legendFontSize = this.scale.width > 1024 ? '12px' : this.scale.width > 768 ? '10px' : '8px';
+    const legendDescriptionFontSize = this.scale.width > 1024 ? '10px' : this.scale.width > 768 ? '8px' : '6px';
+
+    // Reposition legend on screen resize to keep it in the top-right corner
+    this.scale.on('resize', (gameSize) => {
+        const { width } = gameSize;
+        legend.x = width - 220;
+    });
+
+    // Node creation and selection logic
+    this.input.on('pointerdown', (pointer, gameObjects) => {
+        if (!gameStarted) return; // Prevent interactions before the game starts
+
+        if (pointer.rightButtonDown()) {
+            if (gameObjects.length > 0) {
+                const nodeToRemove = gameObjects[0];
+                removeNode.call(this, nodeToRemove);
+                score -= 20; // Deduct points for removing a node
+                this.scoreText.setText('Score: ' + score);
+                lastInteractionTime = gameTime; // Update last interaction time
+            }
+        } else {
+            if (gameObjects.length > 0) {
+                const clickedNode = gameObjects[0];
+                if (selectedNode && selectedNode !== clickedNode) {
+                    if (!isAlreadyConnected.call(this, selectedNode, clickedNode)) {
+                        this.add.line(0, 0, selectedNode.x, selectedNode.y, clickedNode.x, clickedNode.y, 0xffffff).setOrigin(0, 0);
+                        addConnection.call(this, selectedNode, clickedNode);
+                        handleColorInteraction.call(this, selectedNode, clickedNode);
+                        comboCounter++;
+                        comboMultiplier = comboCounter >= 3 ? 2 : 1;
+                        score += 10 * comboMultiplier;
+                        this.scoreText.setText('Score: ' + score);
+                        lastInteractionTime = gameTime;
+                    }
+                    selectedNode = null;
+                } else {
+                    selectedNode = clickedNode;
+                }
+            } else {
+                let color = getRandomColor();
+                let node = this.add.circle(pointer.x, pointer.y, 20, color).setInteractive();
+                node.id = this.nodes.length;
+                node.type = color;
+                node.on('pointerover', () => node.setStrokeStyle(2, 0xffffff));
+                node.on('pointerout', () => node.setStrokeStyle(0));
+                this.nodes.push(node);
+                comboCounter = 0;
+                comboMultiplier = 1;
+                lastInteractionTime = gameTime;
+            }
+        }
+    });
+
+    // Main game camera setup for zooming and panning
+    this.cameras.main.setZoom(1);
+
+
+    // Define color associations with smaller font sizes
+    const colorAssociations = [
+        { color: 0x0000ff, name: 'Blue (Cooperation)', description: 'Strengthens the network' },
+        { color: 0x006400, name: 'Green (Growth)', description: 'Supports network resilience' },
+        { color: 0xffff00, name: 'Yellow (Innovation)', description: 'Adds creativity but might risk stability' },
+        { color: 0xff0000, name: 'Red (Conflict)', description: 'Potentially risky' }
+    ];
+
+    // Create visual elements for each color association with smaller sizes
+    colorAssociations.forEach((assoc, index) => {
+        let colorCircle = this.add.circle(0, index * 30, 5, assoc.color).setOrigin(0.5, 0.5);
+        let colorText = this.add.text(15, index * 30 - 5, assoc.name, { fontSize: '12px', fill: '#fff' }).setOrigin(0, 0.5);
+        let descriptionText = this.add.text(15, index * 30 + 10, assoc.description, { fontSize: '10px', fill: '#aaa' }).setOrigin(0, 0.5);
+        legend.add(colorCircle);
+        legend.add(colorText);
+        legend.add(descriptionText);
+    });
+
+    function isAlreadyConnected(node1, node2) {
+        return this.connections[node1.id] && this.connections[node1.id].includes(node2.id);
+    }
+    
+    // Update the addConnection function to use this.connections
+    function addConnection(node1, node2) {
+        if (!this.connections[node1.id]) this.connections[node1.id] = [];
+        if (!this.connections[node2.id]) this.connections[node2.id] = [];
+        this.connections[node1.id].push(node2.id);
+        this.connections[node2.id].push(node1.id);
+    }
+
+    function getRandomColor() {
+        // Add a special color (e.g., yellow for power-up nodes)
+        const colors = [0x006400, 0xff0000, 0x0000ff, 0xffff00]; // Green, Red, Blue, Yellow (Special)
+        return colors[Math.floor(Math.random() * colors.length)];
+    }
+
+    function checkForLoop(startNode) {
+        let visited = new Set();
+        let loopNodes = [];
+    
+        if (dfs(startNode.id, null, visited, loopNodes) && loopNodes.length >= 5) {
+            if (areNodesSameColor.call(this, loopNodes)) {
+                createBigNode.call(this, loopNodes);
+                score += 200; // Bonus score for creating the big node
+                this.scoreText.setText('Score: ' + score);
+                showAchievementBadge('Big Node Created!');
+            }
+            return true;
+        }
+        return false;
+    }
+    
+    function dfs(nodeId, parent, visited, loopNodes) {
+        if (visited.has(nodeId)) {
+            return true; // Loop detected
+        }
+        visited.add(nodeId);
+        loopNodes.push(nodeId);
+        
+        for (let neighborId of (this.connections[nodeId] || [])) {
+            if (neighborId !== parent && dfs.call(this, neighborId, nodeId, visited, loopNodes)) {
+                return true;
+            }
+        }
+        loopNodes.pop();
+        return false;
+    }
+    
+    function areNodesSameColor(loopNodes) {
+        if (!this.nodes || this.nodes.length === 0) {
+            console.error('this.nodes is undefined or empty');
+            return false;
+        }
+    
+        const firstNode = this.nodes.find(n => n.id === loopNodes[0]);
+        if (!firstNode) return false;
+    
+        return loopNodes.every(nodeId => {
+            let node = this.nodes.find(n => n.id === nodeId);
+            return node && node.type === firstNode.type;
+        });
+    }
+    
+    function handleColorInteraction(node1, node2) {
+        if (node1.type === 0xff0000 || node2.type === 0xff0000) {
+            // Any connection involving a red node decreases the score
+            score -= 10;
+    
+            // If both nodes are red, trigger the special effect to remove connected nodes and lines
+            if (node1.type === 0xff0000 && node2.type === 0xff0000) {
+                removeConnectedNodesAndLines.call(this, node1);
+                removeConnectedNodesAndLines.call(this, node2);
+            }
+        } else if ((node1.type === 0x006400 && node2.type === 0x0000ff) || (node1.type === 0x0000ff && node2.type === 0x00ff00)) {
+            // Green to Blue or Blue to Green (positive connection)
+            score += 15;
+        } else if ((node1.type === 0xffff00 && node2.type === 0xff0000) || (node1.type === 0xff0000 && node2.type === 0xffff00)) {
+            // Yellow to Red (penalized)
+            score -= 10;
+        } else if (node1.type === node2.type) {
+            // Same color connection
+            score += 5;
+        } else {
+            // Default connection for other cases
+            score += 2;
+        }
+    
+        // Update score display
+        this.scoreText.setText('Score: ' + score);
+    
+        // Reset combo counter on penalties
+        if (score < 0) {
+            comboCounter = 0;
+        }
+    }
+
+    function removeConnectedNodesAndLines(node) {
+        // Collect all lines connected to the node
+        let linesToRemove = this.children.list.filter(child =>
+            child.type === 'Line' &&
+            (child.geom.x1 === node.x && child.geom.y1 === node.y ||
+            child.geom.x2 === node.x && child.geom.y2 === node.y)
+        );
+    
+        // Remove all found lines and deduct score for each line removed
+        linesToRemove.forEach(line => {
+            line.destroy(); // Remove the line
+            score -= 10; // Deduct points for each line removed (adjust if necessary)
+        });
+        this.scoreText.setText('Score: ' + score);
+    
+        // Remove the node itself and update the node list
+        let nodeId = node.id;
+        if (this.nodes.includes(node)) {
+            this.nodes = this.nodes.filter(n => n.id !== nodeId);
+            node.destroy();
+        }
+    
+        // Remove connections from the adjacency list
+        if (this.connections[nodeId]) {
+            this.connections[nodeId].forEach(connectedId => {
+                if (this.connections[connectedId]) {
+                    this.connections[connectedId] = this.connections[connectedId].filter(id => id !== nodeId);
+                }
+            });
+            delete this.connections[nodeId];
+        }
+    }
+
+}
+
+function update() {
+    // Any real-time updates can go here
+}
