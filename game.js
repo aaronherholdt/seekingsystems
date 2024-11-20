@@ -1,201 +1,203 @@
- // Connect to the backend server
- const socket = io("https://seekingsystems-backend.onrender.com"); // Ensure this matches your backend setup
+// Connect to the backend server
+const socket = io("https://seekingsystems-backend.onrender.com"); // Ensure this matches your backend setup
 
- const config = {
-     type: Phaser.AUTO,
-     width: window.innerWidth,
-     height: window.innerHeight,
-     scale: {
-         mode: Phaser.Scale.FIT,
-         autoCenter: Phaser.Scale.CENTER_BOTH
-     },
-     scene: {
-         preload: preload,
-         create: create,
-         update: update
-     }
- };
- 
- const game = new Phaser.Game(config);
- 
- // Update game size on window resize to maintain responsiveness
- window.addEventListener('resize', () => {
-     game.scale.resize(window.innerWidth, window.innerHeight);
- });
- 
- let score = 0;
- let gameTime = 0;
- let resilienceTimer = 0; // Timer to track resilience time
- let isGameActive = false; // Change this to ensure the timer doesn't start until the game starts
- let winConditionTime = 300; // 300 seconds (5 minutes)
- let minNodeThreshold = 5; // Minimum number of nodes required to avoid losing
- let gameStarted = false; // New flag to track if the game has started
- let lastInteractionTime = 0; // Track the last interaction for score decay
- let comboCounter = 0; // Track consecutive successful actions
- let comboMultiplier = 1; // Default score multiplier
- let players = []; // Global array to track connected players
- 
- function preload() {
-     // Optional: Load any assets here
- }
- 
- function showTutorial() {
-     let tutorialText = this.add.text(100, 200, 'Welcome! Connect the nodes to build a strong network. Keep it resilient for 5 minutes to win!', {
-         fontSize: '18px',
-         fill: '#fff',
-         backgroundColor: '#000',
-         padding: { x: 10, y: 10 }
-     });
-     
-     let startButton = this.add.text(100, 300, 'Start', {
-         fontSize: '24px',
-         fill: '#0f0'
-     }).setInteractive();
-     
-     startButton.on('pointerdown', () => {
-         tutorialText.destroy();
-         startButton.destroy();
-         gameStarted = true; // Set the flag to true when the button is clicked
-         isGameActive = true; // Start the game logic
-         startTimers.call(this); // Call the function to start the timers
-     });
- }
- 
- // Function to start the score decay
- function startScoreDecay() {
-     this.time.addEvent({
-         delay: 5000,
-         callback: () => {
-             if (isGameActive && score > 0) {
-                 score -= 1;
-                 this.scoreText.setText('Score: ' + score);
-             }
-         },
-         callbackScope: this,
-         loop: true
-     });
- }
- 
- function startTimers() {
-     // Set up a timer that updates the game time every second
-     this.time.addEvent({
-         delay: 1000, // 1 second in milliseconds
-         callback: () => {
-             if (isGameActive) {
-                 gameTime++;
-                 this.children.list.forEach(child => {
-                     if (child.text && child.text.startsWith('Time:')) {
-                         child.setText('Time: ' + gameTime + 's');
-                     }
-                 });
- 
-                 // Track resilience time if the node count is above the threshold
-                 if (this.nodes.length >= minNodeThreshold) {
-                     resilienceTimer++;
-                     this.children.list.forEach(child => {
-                         if (child.text && child.text.startsWith('Resilience:')) {
-                             child.setText('Resilience: ' + resilienceTimer + 's');
-                         }
-                     });
-                 } else {
-                     resilienceTimer = 0; // Reset if the node count falls below the threshold
-                 }
- 
-                 // Check if the player wins
-                 if (resilienceTimer >= winConditionTime) {
-                     isGameActive = false;
-                     this.add.text(400, 400, 'Congratulations! You maintained a resilient network!', { fontSize: '24px', fill: '#0f0' });
-                 }
- 
-                 // Deduct points for inactivity if no interaction for 10 seconds
-                 if (gameTime - lastInteractionTime >= 10 && score > 0) {
-                     score -= 5; // Penalty for inactivity
-                     this.scoreText.setText('Score: ' + score);
-                 }
-             }
-         },
-         callbackScope: this,
-         loop: true
-     });
- 
-     // Set up a timer that dissolves a random node every 15 seconds after 1 minute
-     this.time.addEvent({
-         delay: 60000, // Delay of 1 minute (60000 ms)
-         callback: () => {
-             this.time.addEvent({
-                 delay: 15000, // 15 seconds in milliseconds
-                 callback: () => {
-                     dissolveRandomNode.call(this);
-                 },
-                 callbackScope: this,
-                 loop: true
-             });
-         },
-         callbackScope: this
-     });
- 
-     startScoreDecay.call(this);
- }
- 
- 
- function dissolveRandomNode() {
-     if (this.nodes.length > 0) {
-         const randomNode = this.nodes[Math.floor(Math.random() * this.nodes.length)];
-         removeNode.call(this, randomNode);
-     }
- }
- 
- // Function to remove a node and its connections
- function removeNode(node) {
-     if (this.nodes.includes(node)) {
-         score -= 20; // Deduct points for removing a node
-         this.scoreText.setText('Score: ' + score);
- 
-         // Collect all lines connected to the node
-         let linesToRemove = this.children.list.filter(child => 
-             child.type === 'Line' && 
-             (child.geom.x1 === node.x && child.geom.y1 === node.y || 
-              child.geom.x2 === node.x && child.geom.y2 === node.y)
-         );
- 
-         // Remove all found lines and deduct score for each
-         linesToRemove.forEach(line => {
-             line.destroy(); // Remove the line
-             score -= 10; // Deduct points for each line removed (adjust as needed)
-         });
-         this.scoreText.setText('Score: ' + score);
- 
-         // Remove connections from the adjacency list
-         let nodeId = node.id;
-         if (this.connections[nodeId]) {
-             this.connections[nodeId].forEach(connectedId => {
-                 if (this.connections[connectedId]) {
-                     this.connections[connectedId] = this.connections[connectedId].filter(id => id !== nodeId);
-                 }
-             });
-             delete this.connections[nodeId];
-         }
- 
-         // Remove the node visually
-         node.destroy();
- 
-         // Remove the node from the nodes array
-         this.nodes = this.nodes.filter(n => n.id !== nodeId);
-     }
- }
- 
+const config = {
+    type: Phaser.AUTO,
+    width: window.innerWidth,
+    height: window.innerHeight,
+    scale: {
+        mode: Phaser.Scale.FIT,
+        autoCenter: Phaser.Scale.CENTER_BOTH
+    },
+    scene: {
+        preload: preload,
+        create: create,
+        update: update
+    }
+};
+
+const game = new Phaser.Game(config);
+
+// Update game size on window resize to maintain responsiveness
+window.addEventListener('resize', () => {
+    game.scale.resize(window.innerWidth, window.innerHeight);
+});
+
+let score = 0;
+let gameTime = 0;
+let resilienceTimer = 0; // Timer to track resilience time
+let isGameActive = false; // Change this to ensure the timer doesn't start until the game starts
+let winConditionTime = 300; // 300 seconds (5 minutes)
+let minNodeThreshold = 5; // Minimum number of nodes required to avoid losing
+let gameStarted = false; // New flag to track if the game has started
+let lastInteractionTime = 0; // Track the last interaction for score decay
+let comboCounter = 0; // Track consecutive successful actions
+let comboMultiplier = 1; // Default score multiplier
+let players = []; // Global array to track connected players
+let isDragging = false; // Track whether a node is being dragged
+
+
+function preload() {
+    // Optional: Load any assets here
+}
+
+function showTutorial() {
+    let tutorialText = this.add.text(100, 200, 'Welcome! Connect the nodes to build a strong network. Keep it resilient for 5 minutes to win!', {
+        fontSize: '18px',
+        fill: '#fff',
+        backgroundColor: '#000',
+        padding: { x: 10, y: 10 }
+    });
+    
+    let startButton = this.add.text(100, 300, 'Start', {
+        fontSize: '24px',
+        fill: '#0f0'
+    }).setInteractive();
+    
+    startButton.on('pointerdown', () => {
+        tutorialText.destroy();
+        startButton.destroy();
+        gameStarted = true; // Set the flag to true when the button is clicked
+        isGameActive = true; // Start the game logic
+        startTimers.call(this); // Call the function to start the timers
+    });
+}
+
+// Function to start the score decay
+function startScoreDecay() {
+    this.time.addEvent({
+        delay: 5000,
+        callback: () => {
+            if (isGameActive && score > 0) {
+                score -= 1;
+                this.scoreText.setText('Score: ' + score);
+            }
+        },
+        callbackScope: this,
+        loop: true
+    });
+}
+
+function startTimers() {
+    // Set up a timer that updates the game time every second
+    this.time.addEvent({
+        delay: 1000, // 1 second in milliseconds
+        callback: () => {
+            if (isGameActive) {
+                gameTime++;
+                this.children.list.forEach(child => {
+                    if (child.text && child.text.startsWith('Time:')) {
+                        child.setText('Time: ' + gameTime + 's');
+                    }
+                });
+
+                // Track resilience time if the node count is above the threshold
+                if (this.nodes.length >= minNodeThreshold) {
+                    resilienceTimer++;
+                    this.children.list.forEach(child => {
+                        if (child.text && child.text.startsWith('Resilience:')) {
+                            child.setText('Resilience: ' + resilienceTimer + 's');
+                        }
+                    });
+                } else {
+                    resilienceTimer = 0; // Reset if the node count falls below the threshold
+                }
+
+                // Check if the player wins
+                if (resilienceTimer >= winConditionTime) {
+                    isGameActive = false;
+                    this.add.text(400, 400, 'Congratulations! You maintained a resilient network!', { fontSize: '24px', fill: '#0f0' });
+                }
+
+                // Deduct points for inactivity if no interaction for 10 seconds
+                if (gameTime - lastInteractionTime >= 10 && score > 0) {
+                    score -= 5; // Penalty for inactivity
+                    this.scoreText.setText('Score: ' + score);
+                }
+            }
+        },
+        callbackScope: this,
+        loop: true
+    });
+
+    // Set up a timer that dissolves a random node every 15 seconds after 1 minute
+    this.time.addEvent({
+        delay: 60000, // Delay of 1 minute (60000 ms)
+        callback: () => {
+            this.time.addEvent({
+                delay: 15000, // 15 seconds in milliseconds
+                callback: () => {
+                    dissolveRandomNode.call(this);
+                },
+                callbackScope: this,
+                loop: true
+            });
+        },
+        callbackScope: this
+    });
+
+    startScoreDecay.call(this);
+}
+
+
+function dissolveRandomNode() {
+    if (this.nodes.length > 0) {
+        const randomNode = this.nodes[Math.floor(Math.random() * this.nodes.length)];
+        removeNode.call(this, randomNode);
+    }
+}
+
+// Function to remove a node and its connections
+function removeNode(node) {
+    if (this.nodes.includes(node)) {
+        score -= 20; // Deduct points for removing a node
+        this.scoreText.setText('Score: ' + score);
+
+        // Collect all lines connected to the node
+        let linesToRemove = this.children.list.filter(child => 
+            child.type === 'Line' && 
+            (child.geom.x1 === node.x && child.geom.y1 === node.y || 
+            child.geom.x2 === node.x && child.geom.y2 === node.y)
+        );
+
+        // Remove all found lines and deduct score for each
+        linesToRemove.forEach(line => {
+            line.destroy(); // Remove the line
+            score -= 10; // Deduct points for each line removed (adjust as needed)
+        });
+        this.scoreText.setText('Score: ' + score);
+
+        // Remove connections from the adjacency list
+        let nodeId = node.id;
+        if (this.connections[nodeId]) {
+            this.connections[nodeId].forEach(connectedId => {
+                if (this.connections[connectedId]) {
+                    this.connections[connectedId] = this.connections[connectedId].filter(id => id !== nodeId);
+                }
+            });
+            delete this.connections[nodeId];
+        }
+
+        // Remove the node visually
+        node.destroy();
+
+        // Remove the node from the nodes array
+        this.nodes = this.nodes.filter(n => n.id !== nodeId);
+    }
+}
+
 function create() {
-    // Initialize the adjacency list for connections
-    this.connections = {}; 
- 
-    showTutorial.call(this); // Call the tutorial when the game starts
- 
+    this.connections = {}; // Initialize adjacency list for connections
     this.nodes = [];
-    this.scoreText = this.add.text(10, 10, 'Score: 0', { fontSize: '16px', fill: '#fff' }); // Make scoreText a property of this
-    let timerText = this.add.text(10, 30, 'Time: 0s', { fontSize: '16px', fill: '#fff' }); // Timer display
+    let selectedNode = null; // Track the selected node for connections
+
+    showTutorial.call(this); // Show the tutorial at the start of the game
+
+    // Add UI elements
+    this.scoreText = this.add.text(10, 10, 'Score: 0', { fontSize: '16px', fill: '#fff' });
+    let timerText = this.add.text(10, 30, 'Time: 0s', { fontSize: '16px', fill: '#fff' });
     let resilienceProgress = this.add.text(10, 50, 'Resilience: 0s', { fontSize: '16px', fill: '#fff' });
-    let selectedNode = null;
- 
+
     // Create a text element for displaying player names below the resilience text
     let playerListText = this.add.text(10, 70, 'Players:', { fontSize: '16px', fill: '#fff' });
 
@@ -227,59 +229,48 @@ function create() {
         updatePlayersUI(); // Refresh the displayed player list
     });
 
-    const legend = this.add.container(1000, 20); // Adjust position to top right
-    // Set base font sizes depending on screen width
-    const baseFontSize = this.scale.width > 1024 ? '16px' : this.scale.width > 768 ? '14px' : '12px';
-    const legendFontSize = this.scale.width > 1024 ? '12px' : this.scale.width > 768 ? '10px' : '8px';
-    const legendDescriptionFontSize = this.scale.width > 1024 ? '10px' : this.scale.width > 768 ? '8px' : '6px';
-
-    // Reposition legend on screen resize to keep it in the top-right corner
-    this.scale.on('resize', (gameSize) => {
-        const { width } = gameSize;
-        legend.x = width - 220;
-    });
-
-    // Node creation and selection logic
+    // Handle node interaction logic
     this.input.on('pointerdown', (pointer, gameObjects) => {
         if (!gameStarted) return; // Prevent interactions before the game starts
 
         if (pointer.rightButtonDown()) {
+            // Right-click to remove nodes
             if (gameObjects.length > 0) {
                 const nodeToRemove = gameObjects[0];
                 removeNode.call(this, nodeToRemove);
-                score -= 20; // Deduct points for removing a node
+                score -= 20;
                 this.scoreText.setText('Score: ' + score);
-                lastInteractionTime = gameTime; // Update last interaction time
             }
         } else {
+            // Handle node connection or creation
             if (gameObjects.length > 0) {
                 const clickedNode = gameObjects[0];
+
                 if (selectedNode && selectedNode !== clickedNode) {
+                    // Connect the two nodes if they're not already connected
                     if (!isAlreadyConnected.call(this, selectedNode, clickedNode)) {
                         this.add.line(0, 0, selectedNode.x, selectedNode.y, clickedNode.x, clickedNode.y, 0xffffff).setOrigin(0, 0);
                         addConnection.call(this, selectedNode, clickedNode);
                         handleColorInteraction.call(this, selectedNode, clickedNode);
-                        comboCounter++;
-                        comboMultiplier = comboCounter >= 3 ? 2 : 1;
-                        score += 10 * comboMultiplier;
+                        score += 10;
                         this.scoreText.setText('Score: ' + score);
-                        lastInteractionTime = gameTime;
                     }
-                    selectedNode = null;
+                    selectedNode = null; // Reset the selected node
                 } else {
-                    selectedNode = clickedNode;
+                    selectedNode = clickedNode; // Select the clicked node
                 }
             } else {
-                let color = getRandomColor();
-                let node = this.add.circle(pointer.x, pointer.y, 20, color).setInteractive();
+                // Create a new node if no existing node is clicked
+                const color = getRandomColor();
+                const node = this.add.circle(pointer.x, pointer.y, 20, color).setInteractive();
                 node.id = this.nodes.length;
                 node.type = color;
+
+                // Add hover effects
                 node.on('pointerover', () => node.setStrokeStyle(2, 0xffffff));
                 node.on('pointerout', () => node.setStrokeStyle(0));
+
                 this.nodes.push(node);
-                comboCounter = 0;
-                comboMultiplier = 1;
-                lastInteractionTime = gameTime;
             }
         }
     });
@@ -287,8 +278,9 @@ function create() {
     // Main game camera setup for zooming and panning
     this.cameras.main.setZoom(1);
 
+    const legend = this.add.container(this.scale.width - 220, 20); // Adjust position to top-right corner
 
-    // Define color associations with smaller font sizes
+    // Define color associations for legend
     const colorAssociations = [
         { color: 0x0000ff, name: 'Blue (Cooperation)', description: 'Strengthens the network' },
         { color: 0x006400, name: 'Green (Growth)', description: 'Supports network resilience' },
@@ -296,7 +288,7 @@ function create() {
         { color: 0xff0000, name: 'Red (Conflict)', description: 'Potentially risky' }
     ];
 
-    // Create visual elements for each color association with smaller sizes
+    // Create legend
     colorAssociations.forEach((assoc, index) => {
         let colorCircle = this.add.circle(0, index * 30, 5, assoc.color).setOrigin(0.5, 0.5);
         let colorText = this.add.text(15, index * 30 - 5, assoc.name, { fontSize: '12px', fill: '#fff' }).setOrigin(0, 0.5);
@@ -306,11 +298,17 @@ function create() {
         legend.add(descriptionText);
     });
 
+    // Reposition legend on screen resize
+    this.scale.on('resize', (gameSize) => {
+        const { width } = gameSize;
+        legend.x = width - 220; // Keep aligned with the right edge
+    });
+
+    // Helper functions
     function isAlreadyConnected(node1, node2) {
         return this.connections[node1.id] && this.connections[node1.id].includes(node2.id);
     }
-    
-    // Update the addConnection function to use this.connections
+
     function addConnection(node1, node2) {
         if (!this.connections[node1.id]) this.connections[node1.id] = [];
         if (!this.connections[node2.id]) this.connections[node2.id] = [];
@@ -319,10 +317,10 @@ function create() {
     }
 
     function getRandomColor() {
-        // Add a special color (e.g., yellow for power-up nodes)
-        const colors = [0x006400, 0xff0000, 0x0000ff, 0xffff00]; // Green, Red, Blue, Yellow (Special)
+        const colors = [0x006400, 0xff0000, 0x0000ff, 0xffff00];
         return colors[Math.floor(Math.random() * colors.length)];
     }
+
 
     function checkForLoop(startNode) {
         let visited = new Set();
